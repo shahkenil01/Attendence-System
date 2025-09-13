@@ -47,8 +47,8 @@ let currentSession = { code: null, subject: 'No Subject' };
 let finalAttendanceList = [];
 
 const CAMPUS_LOCATION = {
-  latitude: 23.083048175084034,
-  longitude: 72.53411698151733,
+  latitude: 23.0830809,
+  longitude: 72.5341933,
   radius: 50,
 };
 
