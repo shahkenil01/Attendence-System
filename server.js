@@ -299,7 +299,7 @@ io.on('connection', (socket) => {
       const submission = {
         name: socket.user.name,
         enrollment: socket.user.enrollment,
-        timestamp: new Date().toLocaleTimeString(),
+        timestamp: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
       };
       finalAttendanceList.push(submission);
       io.emit('attendanceUpdate', finalAttendanceList);
