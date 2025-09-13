@@ -7,8 +7,8 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
-const connectDB = require('./database'); // Using new MongoDB connector
-const User = require('./models/User'); // Using the Mongoose User Model
+const connectDB = require('./database');
+const User = require('./models/User');
 
 // Connect to MongoDB
 connectDB();
