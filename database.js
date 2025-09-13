@@ -1,29 +1,15 @@
 // database.js
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
+const mongoose = require('mongoose');
+require('dotenv').config();
 
-async function setup() {
-  // open the database file
-  const db = await open({
-    filename: './attendance.db', // This file will be created
-    driver: sqlite3.Database
-  });
+const connectDB = async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+        console.log('MongoDB connected successfully.');
+    } catch (error) {
+        console.error('MongoDB connection failed:', error.message);
+        process.exit(1); // Exit process with failure
+    }
+};
 
-  // Create the 'users' table if it doesn't exist
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      enrollment TEXT UNIQUE, -- Enrollment must be unique for students
-      email TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL,
-      role TEXT NOT NULL CHECK(role IN ('student', 'teacher'))
-    );
-  `);
-
-  console.log('Database setup complete.');
-  return db;
-}
-
-// Export the setup function so we can use it in our server
-module.exports = setup;
+module.exports = connectDB;
