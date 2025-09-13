@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const http = require('http');
