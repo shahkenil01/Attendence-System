@@ -49,7 +49,7 @@ let finalAttendanceList = [];
 const CAMPUS_LOCATION = {
   latitude: 23.0830809,
   longitude: 72.5341933,
-  radius: 50,
+  radius: 1050,
 };
 
 function getDistance(lat1, lon1, lat2, lon2) {
