@@ -172,10 +172,37 @@
           alert('Please enter a subject name to start the session.');
           return;
         }
-        socket.emit('startSession', { subject: subject });
+
+        if (!navigator.geolocation) {
+          return alert('Geolocation is not supported by your browser.');
+        }
+
         startSessionBtn.disabled = true;
-        startSessionBtn.textContent = 'Session Started';
-        lockBtn.disabled = false;
+        startSessionBtn.textContent = 'Getting Location...';
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const teacherLocation = {
+              lat: position.coords.latitude,
+              lon: position.coords.longitude,
+            };
+
+            socket.emit('startSession', {
+              subject: subject,
+              location: teacherLocation,
+            });
+
+            startSessionBtn.textContent = 'Session Started';
+            lockBtn.disabled = false;
+          },
+          (error) => {
+            alert(
+              'Error: Could not get your location. Please ensure location is enabled.',
+            );
+            startSessionBtn.disabled = false;
+            startSessionBtn.textContent = 'Start New Session';
+          },
+        );
       });
 
       socket.on('sessionCode', (code) => {
@@ -191,8 +218,21 @@
         studentCount.textContent = students.length;
         students.forEach((s) => {
           const li = document.createElement('li');
-          li.className = 'list-group-item';
+          li.className =
+            'list-group-item d-flex justify-content-between align-items-center';
           li.textContent = `${s.name} (${s.enrollment})`;
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'btn btn-danger btn-sm';
+          removeBtn.textContent = 'Remove';
+
+          removeBtn.onclick = () => {
+            if (confirm(`Are you sure you want to remove ${s.name}?`)) {
+              socket.emit('removeStudent', s.enrollment);
+            }
+          };
+
+          li.appendChild(removeBtn);
           waitingList.appendChild(li);
         });
       });

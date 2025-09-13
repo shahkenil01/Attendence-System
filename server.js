@@ -10,7 +10,6 @@ const cors = require('cors');
 const connectDB = require('./database');
 const User = require('./models/User');
 
-// Connect to MongoDB
 connectDB();
 
 const app = express();
@@ -49,7 +48,7 @@ let finalAttendanceList = [];
 const CAMPUS_LOCATION = {
   latitude: 23.0830809,
   longitude: 72.5341933,
-  radius: 1050,
+  radius: 50,
 };
 
 function getDistance(lat1, lon1, lat2, lon2) {
