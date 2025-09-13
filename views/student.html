@@ -33,6 +33,9 @@
               browser. Please complete or close the other session first, and
               then refresh this page.
             </p>
+            <button id="closeSessionsBtn" class="btn btn-warning mt-3">
+              Close Other Active Sessions
+            </button>
           </div>
         </div>
       </div>
@@ -127,20 +130,45 @@
       const sessionLockDiv = document.getElementById('sessionLockDiv');
       const mainContentDiv = document.getElementById('mainContentDiv');
 
-      // Check for an active session in another tab first
+      // NEW: Ek "walkie-talkie" channel banayein
+      const channel = new BroadcastChannel('session_manager');
+
       if (localStorage.getItem('isStudentSessionActive') === 'true') {
         mainContentDiv.classList.add('d-none');
         sessionLockDiv.classList.remove('d-none');
+
+        const closeSessionsBtn = document.getElementById('closeSessionsBtn');
+        closeSessionsBtn.addEventListener('click', () => {
+          channel.postMessage('force_logout');
+          closeSessionsBtn.textContent = 'Closing... Please wait.';
+          closeSessionsBtn.disabled = true;
+
+          // Thoda wait karke is tab ko aage badhayein
+          setTimeout(() => {
+            localStorage.removeItem('isStudentSessionActive');
+            window.location.reload();
+          }, 500); // 0.5 second ka delay
+        });
       } else {
-        // If no active session, set the flag for this tab
         localStorage.setItem('isStudentSessionActive', 'true');
 
-        // When the user closes this tab, remove the flag
+        // NEW: Message sunne ka logic
+        // Agar koi aur tab "force_logout" message bhejta hai, to yeh tab logout ho jayega
+        channel.onmessage = (event) => {
+          if (event.data === 'force_logout') {
+            // Flag hata dein taaki naya tab aage badh sake
+            localStorage.removeItem('isStudentSessionActive');
+            // Is tab ko logout karke login page par bhej dein
+            window.location.href = '/logout';
+          }
+        };
+
         window.addEventListener('beforeunload', () => {
           localStorage.removeItem('isStudentSessionActive');
+          channel.close(); // Channel ko aache se band karein
         });
 
-        // --- Start the rest of the application logic ---
+        // --- Aapka baaki ka poora code yahan se shuru hoga ---
         const token = localStorage.getItem('authToken');
         if (!token) {
           window.location.href = '/login';
@@ -234,7 +262,6 @@
         socket.on('goToForm', () => {
           window.location.href = '/form';
         });
-
         socket.on('errorMsg', (msg) => {
           statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${msg}</div>`;
           joinButton.disabled = false;
@@ -246,7 +273,7 @@
           localStorage.clear();
           window.location.href = '/login';
         });
-      } // End of the 'else' block for the session lock
+      }
     </script>
   </body>
 </html>
