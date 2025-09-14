@@ -59,12 +59,13 @@ let currentSession = { code: null, subject: 'No Subject' };
 let finalAttendanceList = [];
 let blockedList = [];
 let isSessionLocked = false;
+let allowedToAccessForm = new Set();
 const activeUsers = new Map();
 
 const CAMPUS_LOCATION = {
-  latitude: 23.0830809,
-  longitude: 72.5341933,
-  radius: 60,
+  latitude: 23.083,
+  longitude: 72.53426,
+  radius: 10,
 };
 
 function getDistance(lat1, lon1, lat2, lon2) {
@@ -242,9 +243,18 @@ app.get('/teacher', (req, res) => {
   if (req.user.role !== 'teacher') return res.redirect('/student');
   res.sendFile(path.join(__dirname, 'views', 'teacher.html'));
 });
+// server.js
 app.get('/form', (req, res) => {
-  if (req.user.role !== 'student') return res.redirect('/teacher');
-  res.sendFile(path.join(__dirname, 'views', 'form.html'));
+  if (req.user.role !== 'student') {
+    return res.redirect('/teacher');
+  }
+
+  if (allowedToAccessForm.has(req.user.id)) {
+    allowedToAccessForm.delete(req.user.id);
+    res.sendFile(path.join(__dirname, 'views', 'form.html'));
+  } else {
+    res.redirect('/student');
+  }
 });
 app.get('/logout', async (req, res) => {
   try {
@@ -348,7 +358,8 @@ io.on('connection', (socket) => {
     );
     if (!studentExists) {
       waitingRoom.push({
-        id: socket.id,
+        socketId: socket.id,
+        userId: socket.user.id,
         name: socket.user.name,
         enrollment: socket.user.enrollment,
       });
@@ -366,7 +377,7 @@ io.on('connection', (socket) => {
     blockedList.push(enrollment);
     io.emit('waitingList', waitingRoom);
     if (studentToRemove) {
-      io.to(studentToRemove.id).emit('youAreRemoved');
+      io.to(studentToRemove.socketId).emit('youAreRemoved'); 
     }
     console.log(`Teacher ${socket.user.name} removed student ${enrollment}`);
   });
@@ -402,6 +413,11 @@ io.on('connection', (socket) => {
   socket.on('lockSession', () => {
     if (socket.user.role !== 'teacher') return;
     isSessionLocked = true;
+
+    waitingRoom.forEach((student) => {
+      allowedToAccessForm.add(student.userId);
+    });
+
     io.emit('goToForm');
     console.log('Teacher locked session. No new students can join.');
   });
@@ -443,7 +459,7 @@ io.on('connection', (socket) => {
     if (activeUsers.get(socket.user.id) === socket.id) {
       activeUsers.delete(socket.user.id);
     }
-    waitingRoom = waitingRoom.filter((s) => s.id !== socket.id);
+    waitingRoom = waitingRoom.filter((s) => s.socketId !== socket.id);
     io.emit('waitingList', waitingRoom);
     console.log('socket disconnected', socket.id);
   });
