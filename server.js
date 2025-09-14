@@ -46,6 +46,7 @@ let currentSession = { code: null, subject: 'No Subject' };
 let finalAttendanceList = [];
 let blockedList = [];
 let isSessionLocked = false;
+const activeUsers = new Map();
 
 const CAMPUS_LOCATION = {
   latitude: 23.0830809,
@@ -225,161 +226,186 @@ app.get('/api/user/me', (req, res) => {
 
 // --- SOCKET.IO LOGIC ---
 io.on('connection', (socket) => {
-  console.log('socket connected', socket.id, 'as', socket.user.name);
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    return socket.disconnect(true);
+  }
 
-  socket.on('verifyLocation', (coords) => {
-    if (socket.user.role !== 'student' || !coords) return;
-    const distance = getDistance(
-      CAMPUS_LOCATION.latitude,
-      CAMPUS_LOCATION.longitude,
-      coords.latitude,
-      coords.longitude,
-    );
-    if (distance <= CAMPUS_LOCATION.radius) {
-      socket.emit('locationVerified');
-    } else {
-      socket.emit(
-        'locationInvalid',
-        `You are ~${Math.round(distance)} meters away. You must be within ${
-          CAMPUS_LOCATION.radius
-        } meters of the campus.`,
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return socket.disconnect(true);
+    }
+    socket.user = decoded;
+    console.log('socket connected', socket.id, 'as', socket.user.name);
+
+    const existingSocketId = activeUsers.get(socket.user.id);
+    if (existingSocketId && existingSocketId !== socket.id) {
+      io.to(existingSocketId).emit('forceDisconnect');
+    }
+
+    // Add the new session to the active users list
+    activeUsers.set(socket.user.id, socket.id);
+
+    socket.on('verifyLocation', (coords) => {
+      if (socket.user.role !== 'student' || !coords) return;
+      const distance = getDistance(
+        CAMPUS_LOCATION.latitude,
+        CAMPUS_LOCATION.longitude,
+        coords.latitude,
+        coords.longitude,
       );
-    }
-  });
+      if (distance <= CAMPUS_LOCATION.radius) {
+        socket.emit('locationVerified');
+      } else {
+        socket.emit(
+          'locationInvalid',
+          `You are ~${Math.round(distance)} meters away. You must be within ${
+            CAMPUS_LOCATION.radius
+          } meters of the campus.`,
+        );
+      }
+    });
 
-  socket.on('startSession', (data) => {
-    if (socket.user.role !== 'teacher' || !data || !data.subject) return;
-    currentSession.code = Math.floor(100000000 + Math.random() * 900000000);
-    currentSession.subject = data.subject;
-    currentSession.location = data.location;
-    waitingRoom = [];
-    finalAttendanceList = [];
-    blockedList = [];
-    isSessionLocked = false;
-    io.emit('sessionCode', currentSession.code);
-    io.emit('attendanceUpdate', finalAttendanceList);
-    console.log(
-      `New session for "${currentSession.subject}" started with code ${currentSession.code}`,
-    );
-  });
-
-  socket.on('joinWaiting', (data) => {
-    if (isSessionLocked) {
-      return socket.emit('errorMsg', 'This session has been locked by the teacher.');
-    }
-    if (
-      socket.user.role !== 'student' ||
-      !data ||
-      data.code != currentSession.code
-    ) {
-      return socket.emit('errorMsg', 'Invalid session code');
-    }
-    if (blockedList.includes(socket.user.enrollment)) {
-      return socket.emit(
-        'errorMsg',
-        'You have been removed and cannot rejoin.',
-      );
-    }
-    const studentExists = waitingRoom.find(
-      (s) => s.enrollment === socket.user.enrollment,
-    );
-    if (!studentExists) {
-      waitingRoom.push({
-        id: socket.id,
-        name: socket.user.name,
-        enrollment: socket.user.enrollment,
-      });
-    }
-    socket.emit('joinSuccess', { subject: currentSession.subject });
-    io.emit('waitingList', waitingRoom);
-  });
-
-  socket.on('removeStudent', (enrollment) => {
-    if (socket.user.role !== 'teacher') return;
-    const studentToRemove = waitingRoom.find(
-      (s) => s.enrollment === enrollment,
-    );
-    waitingRoom = waitingRoom.filter((s) => s.enrollment !== enrollment);
-    blockedList.push(enrollment);
-    io.emit('waitingList', waitingRoom);
-    if (studentToRemove) {
-      io.to(studentToRemove.id).emit('youAreRemoved');
-    }
-    console.log(`Teacher ${socket.user.name} removed student ${enrollment}`);
-  });
-
-  socket.on('verifyFinalLocation', (studentCoords) => {
-    if (
-      socket.user.role !== 'student' ||
-      !studentCoords ||
-      !currentSession.location
-    ) {
-      return;
-    }
-
-    const CLASSROOM_RADIUS = 20; // Classroom ka radius 20 meter
-
-    const distance = getDistance(
-      currentSession.location.lat,
-      currentSession.location.lon,
-      studentCoords.latitude,
-      studentCoords.longitude,
-    );
-
-    if (distance <= CLASSROOM_RADIUS) {
-      socket.emit('finalLocationVerified'); // Verification successful
-    } else {
-      socket.emit(
-        'finalLocationInvalid',
-        `You must be in the classroom (~${Math.round(distance)}m away).`,
-      );
-    }
-  });
-
-  socket.on('lockSession', () => {
-    if (socket.user.role !== 'teacher') return;
-    isSessionLocked = true;
-    io.emit('goToForm');
-    console.log('Teacher locked session. No new students can join.');
-  });
-
-  socket.on('submitAttendance', () => {
-    if (socket.user.role !== 'student') return;
-    const studentExists = finalAttendanceList.find(
-      (s) => s.enrollment === socket.user.enrollment,
-    );
-    if (!studentExists) {
-      const submission = {
-        name: socket.user.name,
-        enrollment: socket.user.enrollment,
-        timestamp: new Date().toLocaleTimeString('en-IN', {
-          timeZone: 'Asia/Kolkata',
-        }),
-      };
-      finalAttendanceList.push(submission);
+    socket.on('startSession', (data) => {
+      if (socket.user.role !== 'teacher' || !data || !data.subject) return;
+      currentSession.code = Math.floor(100000000 + Math.random() * 900000000);
+      currentSession.subject = data.subject;
+      currentSession.location = data.location;
+      waitingRoom = [];
+      finalAttendanceList = [];
+      blockedList = [];
+      isSessionLocked = false;
+      io.emit('sessionCode', currentSession.code);
       io.emit('attendanceUpdate', finalAttendanceList);
-    }
-  });
+      console.log(
+        `New session for "${currentSession.subject}" started with code ${currentSession.code}`,
+      );
+    });
 
-  socket.on('getReport', () => {
-    if (socket.user.role !== 'teacher' || finalAttendanceList.length === 0)
-      return;
-    const headers = ['Enrollment No', 'Name', 'Timestamp'];
-    const dataRows = finalAttendanceList.map((s) => [
-      s.enrollment,
-      s.name,
-      s.timestamp,
-    ]);
-    const csvContent = [headers, ...dataRows]
-      .map((row) => row.join(','))
-      .join('\n');
-    socket.emit('reportData', csvContent);
-  });
+    socket.on('joinWaiting', (data) => {
+      if (isSessionLocked) {
+        return socket.emit(
+          'errorMsg',
+          'This session has been locked by the teacher.',
+        );
+      }
+      if (
+        socket.user.role !== 'student' ||
+        !data ||
+        data.code != currentSession.code
+      ) {
+        return socket.emit('errorMsg', 'Invalid session code');
+      }
+      if (blockedList.includes(socket.user.enrollment)) {
+        return socket.emit(
+          'errorMsg',
+          'You have been removed and cannot rejoin.',
+        );
+      }
+      const studentExists = waitingRoom.find(
+        (s) => s.enrollment === socket.user.enrollment,
+      );
+      if (!studentExists) {
+        waitingRoom.push({
+          id: socket.id,
+          name: socket.user.name,
+          enrollment: socket.user.enrollment,
+        });
+      }
+      socket.emit('joinSuccess', { subject: currentSession.subject });
+      io.emit('waitingList', waitingRoom);
+    });
 
-  socket.on('disconnect', () => {
-    waitingRoom = waitingRoom.filter((s) => s.id !== socket.id);
-    io.emit('waitingList', waitingRoom);
-    console.log('socket disconnected', socket.id);
+    socket.on('removeStudent', (enrollment) => {
+      if (socket.user.role !== 'teacher') return;
+      const studentToRemove = waitingRoom.find(
+        (s) => s.enrollment === enrollment,
+      );
+      waitingRoom = waitingRoom.filter((s) => s.enrollment !== enrollment);
+      blockedList.push(enrollment);
+      io.emit('waitingList', waitingRoom);
+      if (studentToRemove) {
+        io.to(studentToRemove.id).emit('youAreRemoved');
+      }
+      console.log(`Teacher ${socket.user.name} removed student ${enrollment}`);
+    });
+
+    socket.on('verifyFinalLocation', (studentCoords) => {
+      if (
+        socket.user.role !== 'student' ||
+        !studentCoords ||
+        !currentSession.location
+      ) {
+        return;
+      }
+
+      const CLASSROOM_RADIUS = 20; // Classroom ka radius 20 meter
+
+      const distance = getDistance(
+        currentSession.location.lat,
+        currentSession.location.lon,
+        studentCoords.latitude,
+        studentCoords.longitude,
+      );
+
+      if (distance <= CLASSROOM_RADIUS) {
+        socket.emit('finalLocationVerified'); // Verification successful
+      } else {
+        socket.emit(
+          'finalLocationInvalid',
+          `You must be in the classroom (~${Math.round(distance)}m away).`,
+        );
+      }
+    });
+
+    socket.on('lockSession', () => {
+      if (socket.user.role !== 'teacher') return;
+      isSessionLocked = true;
+      io.emit('goToForm');
+      console.log('Teacher locked session. No new students can join.');
+    });
+
+    socket.on('submitAttendance', () => {
+      if (socket.user.role !== 'student') return;
+      const studentExists = finalAttendanceList.find(
+        (s) => s.enrollment === socket.user.enrollment,
+      );
+      if (!studentExists) {
+        const submission = {
+          name: socket.user.name,
+          enrollment: socket.user.enrollment,
+          timestamp: new Date().toLocaleTimeString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+          }),
+        };
+        finalAttendanceList.push(submission);
+        io.emit('attendanceUpdate', finalAttendanceList);
+      }
+    });
+
+    socket.on('getReport', () => {
+      if (socket.user.role !== 'teacher' || finalAttendanceList.length === 0)
+        return;
+      const headers = ['Enrollment No', 'Name', 'Timestamp'];
+      const dataRows = finalAttendanceList.map((s) => [
+        s.enrollment,
+        s.name,
+        s.timestamp,
+      ]);
+      const csvContent = [headers, ...dataRows]
+        .map((row) => row.join(','))
+        .join('\n');
+      socket.emit('reportData', csvContent);
+    });
+
+    socket.on('disconnect', () => {
+      if (activeUsers.get(socket.user.id) === socket.id) {
+        activeUsers.delete(socket.user.id);
+      }
+      waitingRoom = waitingRoom.filter((s) => s.id !== socket.id);
+      io.emit('waitingList', waitingRoom);
+      console.log('socket disconnected', socket.id);
+    });
   });
 });
 
