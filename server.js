@@ -391,7 +391,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const CLASSROOM_RADIUS = 20;
+    const CLASSROOM_RADIUS = 15;
 
     const distance = getDistance(
       currentSession.location.lat,
