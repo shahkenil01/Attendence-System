@@ -57,7 +57,10 @@
             required
           />
           <label for="password"><i class="fas fa-lock me-2"></i>Password</label>
-          <span class="input-icon"><i class="fas fa-lock"></i></span>
+          <span class="input-icon">
+            <i class="fas fa-lock" id="lockIcon"></i>
+            <i class="fas fa-eye-slash" id="togglePasswordIcon"></i>
+          </span>
         </div>
 
         <div class="additional-options">
@@ -83,7 +86,8 @@
       <div id="message" class="mt-3"></div>
 
       <p class="signup-link">
-        Don't have an account? </br> <a href="/signup">Register here</a>.
+        Don't have an account? <br />
+        <a href="/signup">Register here</a>.
       </p>
     </div>
 
@@ -114,7 +118,45 @@
       const messageDiv = document.getElementById('message');
       const loginBtn = document.getElementById('loginBtn');
       const loginText = loginBtn.querySelector('.login-text');
+      const passwordInput = document.getElementById('password');
+      const lockIcon = document.getElementById('lockIcon');
+      const togglePasswordIcon = document.getElementById('togglePasswordIcon');
       const spinner = loginBtn.querySelector('.spinner-border');
+
+      lockIcon.classList.add('visible');
+
+      // Jab user password field par click kare (focus)
+      passwordInput.addEventListener('focus', () => {
+        lockIcon.classList.remove('visible');
+        togglePasswordIcon.classList.add('visible');
+      });
+
+      // Jab user password field se bahar click kare (blur)
+      passwordInput.addEventListener('blur', () => {
+        // Sirf tabhi lock icon wapas laayein jab input field khaali ho
+        if (passwordInput.value === '') {
+          lockIcon.classList.add('visible');
+          togglePasswordIcon.classList.remove('visible');
+        }
+
+        // Extra: Field se bahar jaane par password ko wapas hide kar dein
+        passwordInput.setAttribute('type', 'password');
+        togglePasswordIcon.classList.remove('fa-eye');
+        togglePasswordIcon.classList.add('fa-eye-slash');
+      });
+
+      // Jab user eye icon par click kare
+      togglePasswordIcon.addEventListener('click', () => {
+        const type =
+          passwordInput.getAttribute('type') === 'password'
+            ? 'text'
+            : 'password';
+        passwordInput.setAttribute('type', type);
+
+        // Icon ko toggle karein
+        togglePasswordIcon.classList.toggle('fa-eye');
+        togglePasswordIcon.classList.toggle('fa-eye-slash');
+      });
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -168,8 +210,12 @@
         createParticles();
         const inputs = document.querySelectorAll('input');
         inputs.forEach((input) => {
-          input.addEventListener('focus', () => input.parentElement.classList.add('form-group-3d'));
-          input.addEventListener('blur', () => input.parentElement.classList.remove('form-group-3d'));
+          input.addEventListener('focus', () =>
+            input.parentElement.classList.add('form-group-3d'),
+          );
+          input.addEventListener('blur', () =>
+            input.parentElement.classList.remove('form-group-3d'),
+          );
         });
       });
     </script>

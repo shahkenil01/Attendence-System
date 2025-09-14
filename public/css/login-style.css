@@ -18,9 +18,15 @@ body {
 }
 
 @keyframes gradientBG {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .particles-container {
@@ -40,10 +46,19 @@ body {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0) translateX(0); }
-  25% { transform: translateY(-20px) translateX(10px); }
-  50% { transform: translateY(-40px) translateX(-10px); }
-  75% { transform: translateY(-20px) translateX(10px); }
+  0%,
+  100% {
+    transform: translateY(0) translateX(0);
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px);
+  }
+  50% {
+    transform: translateY(-40px) translateX(-10px);
+  }
+  75% {
+    transform: translateY(-20px) translateX(10px);
+  }
 }
 
 .auth-container {
@@ -66,8 +81,14 @@ body {
 }
 
 @keyframes containerAppear {
-  0% { opacity: 0; transform: translateY(20px) scale(0.95); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .logo {
@@ -84,9 +105,15 @@ body {
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(106, 17, 203, 0.7); }
-  70% { box-shadow: 0 0 0 15px rgba(106, 17, 203, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(106, 17, 203, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(106, 17, 203, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(106, 17, 203, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(106, 17, 203, 0);
+  }
 }
 
 .logo i {
@@ -224,9 +251,23 @@ body {
 
 /* Error message animation */
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-  20%, 40%, 60%, 80% { transform: translateX(5px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-5px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(5px);
+  }
 }
 
 .shake {
@@ -255,9 +296,15 @@ body {
 }
 
 @keyframes gradientBG {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .particles-container {
@@ -277,10 +324,19 @@ body {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0) translateX(0); }
-  25% { transform: translateY(-20px) translateX(10px); }
-  50% { transform: translateY(-40px) translateX(-10px); }
-  75% { transform: translateY(-20px) translateX(10px); }
+  0%,
+  100% {
+    transform: translateY(0) translateX(0);
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px);
+  }
+  50% {
+    transform: translateY(-40px) translateX(-10px);
+  }
+  75% {
+    transform: translateY(-20px) translateX(10px);
+  }
 }
 
 .auth-container {
@@ -303,11 +359,11 @@ body {
 }
 
 @keyframes containerAppear {
-  0% { 
+  0% {
     opacity: 0;
     transform: translateY(20px) scale(0.95);
   }
-  100% { 
+  100% {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
@@ -327,9 +383,15 @@ body {
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(106, 17, 203, 0.7); }
-  70% { box-shadow: 0 0 0 15px rgba(106, 17, 203, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(106, 17, 203, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(106, 17, 203, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(106, 17, 203, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(106, 17, 203, 0);
+  }
 }
 
 .logo i {
@@ -364,7 +426,8 @@ body {
   margin-bottom: 0.5rem;
 }
 
-.form-select, .form-control {
+.form-select,
+.form-control {
   border-radius: 10px;
   padding: 0.8rem 1rem;
   border: 2px solid #e1e1e1;
@@ -372,7 +435,8 @@ body {
   background: rgba(255, 255, 255, 0.9);
 }
 
-.form-select:focus, .form-control:focus {
+.form-select:focus,
+.form-control:focus {
   border-color: #6a11cb;
   box-shadow: 0 0 0 0.25rem rgba(106, 17, 203, 0.25);
   transform: translateY(-2px);
@@ -436,9 +500,23 @@ a:hover {
 
 /* Error message animation */
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-  20%, 40%, 60%, 80% { transform: translateX(5px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-5px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(5px);
+  }
 }
 
 .shake {
@@ -450,21 +528,49 @@ a:hover {
   margin-bottom: 1.5rem;
 }
 
+.input-icon {
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  color: #6c757d;
+}
+
+#lockIcon,
+#togglePasswordIcon {
+  position: absolute;
+  cursor: pointer;
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+  opacity: 0;
+  transform: scale(0.5);
+}
+#lockIcon.visible,
+#togglePasswordIcon.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
 /* Responsive adjustments */
 @media (max-width: 576px) {
   .auth-container {
     padding: 1.5rem;
   }
-    
+
   .logo {
     width: 70px;
     height: 70px;
   }
-    
+
   .logo i {
     font-size: 2rem;
   }
-    
+
   .card-title:after {
     left: 30%;
     width: 40%;
