@@ -188,12 +188,40 @@
       const profileSubjects = document.getElementById('profileSubjects');
       const reconnectModalElement = document.getElementById('reconnectModal');
       const reconnectModal = new bootstrap.Modal(reconnectModalElement);
-      const forceDisconnectModalElement = document.getElementById('forceDisconnectModal');
-      const forceDisconnectModal = new bootstrap.Modal(forceDisconnectModalElement);
+      const forceDisconnectModalElement = document.getElementById(
+        'forceDisconnectModal',
+      );
+      const forceDisconnectModal = new bootstrap.Modal(
+        forceDisconnectModalElement,
+      );
+
+      // --- GLOBAL LOCATION VARIABLE ---
+      let teacherLocation = null;
+
+      // --- GET LOCATION ON PAGE LOAD ---
+      window.onload = () => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              teacherLocation = {
+                lat: pos.coords.latitude,
+                lon: pos.coords.longitude,
+              };
+              console.log('Teacher location fetched:', teacherLocation);
+            },
+            (err) => {
+              alert(
+                'Error: Could not get your location. Please enable location access.',
+              );
+            },
+          );
+        } else {
+          alert('Geolocation is not supported by your browser.');
+        }
+      };
 
       // --- CONNECTION HANDLING ---
       socket.on('connect_error', (err) => {
-        // Only log out if the token is invalid, otherwise show reconnect modal
         if (err.message.includes('Invalid token')) {
           alert('Authentication failed. Please log in again.');
           localStorage.clear();
@@ -202,12 +230,13 @@
           reconnectModal.show();
         }
       });
-      
+
       socket.on('forceDisconnect', () => {
         reconnectModal.hide();
         forceDisconnectModal.show();
         socket.disconnect();
       });
+
       document
         .getElementById('forceDisconnectOkBtn')
         .addEventListener('click', () => {
@@ -254,6 +283,7 @@
           alert('Please enter a subject name to start the session.');
           return;
         }
+
         if (!navigator.geolocation) {
           return alert('Geolocation is not supported by your browser.');
         }
@@ -262,38 +292,38 @@
         startSessionBtn.textContent = 'Getting Location...';
 
         navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const teacherLocation = {
-              lat: position.coords.latitude,
-              lon: position.coords.longitude,
+          (pos) => {
+            teacherLocation = {
+              lat: pos.coords.latitude,
+              lon: pos.coords.longitude,
             };
+            console.log('Teacher location fetched:', teacherLocation);
+
             socket.emit('startSession', {
               subject: subject,
               location: teacherLocation,
             });
+
             startSessionBtn.textContent = 'Session Started';
             lockBtn.disabled = false;
           },
-          (error) => {
+          (err) => {
+            console.error('Geolocation Error:', err);
             let message =
-              'Could not get your location. Please check OS/Browser settings.';
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                message =
-                  'You denied the request for Geolocation. Please allow location access.';
-                break;
-              case error.POSITION_UNAVAILABLE:
-                message =
-                  'Location information is unavailable. This can be due to a poor signal or network issue.';
-                break;
-              case error.TIMEOUT:
-                message = 'The request to get your location timed out.';
-                break;
+              'Could not get your location. Please enable location access.';
+            if (err.code === err.PERMISSION_DENIED) {
+              message =
+                'Permission denied. Please allow location access in browser settings.';
+            } else if (err.code === err.POSITION_UNAVAILABLE) {
+              message = 'Position unavailable. Maybe GPS/Network issue.';
+            } else if (err.code === err.TIMEOUT) {
+              message = 'Location request timed out.';
             }
-            alert(`Error: ${message}`);
+            alert('Error: ' + message);
             startSessionBtn.disabled = false;
             startSessionBtn.textContent = 'Start New Session';
           },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
         );
       });
 

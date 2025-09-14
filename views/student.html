@@ -12,17 +12,12 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
-    <style>
-      body {
-        background-color: #f0f2f5;
-      }
-    </style>
+    <link rel="stylesheet" href="/css/student-style.css">
   </head>
   <body>
     <div
       id="sessionLockDiv"
       class="d-flex align-items-center justify-content-center vh-100 d-none"
-      style="background-color: #f0f2f5"
     >
       <div class="w-100 text-center" style="max-width: 500px">
         <div class="card shadow-sm">
@@ -43,7 +38,7 @@
     <div id="mainContentDiv">
       <nav class="navbar navbar-dark bg-dark">
         <div class="container-fluid">
-          <span class="navbar-brand mb-0 h1">Student Dashboard</span>
+          <span class="navbar-brand mb-0 h1">Dashboard</span>
           <div>
             <button
               class="btn btn-outline-light"
@@ -98,31 +93,30 @@
           </div>
         </div>
       </div>
-
-      <div class="modal fade" id="profileModal" tabindex="-1">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Student Profile</h5>
-              <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="modal"
-              ></button>
-            </div>
-            <div class="modal-body">
-              <p>
-                <strong>Name:</strong> <span id="profileName">Loading...</span>
-              </p>
-              <p>
-                <strong>Enrollment No:</strong>
-                <span id="profileEnrollment">Loading...</span>
-              </p>
-            </div>
+    </div> <div class="modal fade" id="profileModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Student Profile</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p>
+              <strong>Name:</strong> <span id="profileName">Loading...</span>
+            </p>
+            <p>
+              <strong>Enrollment No:</strong>
+              <span id="profileEnrollment">Loading...</span>
+            </p>
           </div>
         </div>
       </div>
     </div>
+    
     <div
       class="modal fade"
       id="reconnectModal"
@@ -176,7 +170,6 @@
         </div>
       </div>
     </div>
-
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -184,7 +177,6 @@
       const mainContentDiv = document.getElementById('mainContentDiv');
       const channel = new BroadcastChannel('session_manager');
 
-      // First, check for an active session in another tab
       if (localStorage.getItem('isStudentSessionActive') === 'true') {
         mainContentDiv.classList.add('d-none');
         sessionLockDiv.classList.remove('d-none');
@@ -200,7 +192,6 @@
           }, 500);
         });
       } else {
-        // If no active session, set the flag and listen for messages
         localStorage.setItem('isStudentSessionActive', 'true');
         channel.onmessage = (event) => {
           if (event.data === 'force_logout') {
@@ -213,7 +204,6 @@
           channel.close();
         });
 
-        // --- Start the main application logic ---
         const token = localStorage.getItem('authToken');
         if (!token) {
           window.location.href = '/login';
@@ -224,7 +214,6 @@
           reconnection: true,
         });
 
-        // Get all page elements
         const loaderDiv = document.getElementById('loader');
         const contentDiv = document.getElementById('content');
         const form = document.getElementById('joinForm');
@@ -238,7 +227,6 @@
         const forceDisconnectModalElement = document.getElementById('forceDisconnectModal');
         const forceDisconnectModal = new bootstrap.Modal(forceDisconnectModalElement);
 
-        // --- Connection Handling ---
         socket.on('connect_error', (err) => {
           if (err.message.includes('Invalid token')) {
             alert('Authentication failed. Please log in again.');
@@ -249,22 +237,21 @@
           }
         });
         
-      socket.on('forceDisconnect', () => {
-        reconnectModal.hide();
-        forceDisconnectModal.show();
-        socket.disconnect();
-      });
-      document
-        .getElementById('forceDisconnectOkBtn')
-        .addEventListener('click', () => {
-          localStorage.clear();
-          window.location.href = '/login';
+        socket.on('forceDisconnect', () => {
+          reconnectModal.hide();
+          forceDisconnectModal.show();
+          socket.disconnect();
         });
+        document
+          .getElementById('forceDisconnectOkBtn')
+          .addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = '/login';
+          });
 
         socket.on('disconnect', () => reconnectModal.show());
         socket.on('connect', () => reconnectModal.hide());
 
-        // --- Profile Logic ---
         async function fetchProfileData() {
           try {
             const response = await fetch('/api/user/me');
@@ -279,7 +266,6 @@
         }
         fetchProfileData();
 
-        // --- Location & Session Logic ---
         function showContent() {
           loaderDiv.classList.add('d-none');
           contentDiv.classList.remove('d-none');
@@ -324,7 +310,6 @@
           joinButton.disabled = true;
         });
 
-        // --- Socket Event Listeners ---
         socket.on('locationVerified', () => {
           showContent();
           joinFieldset.disabled = false;
