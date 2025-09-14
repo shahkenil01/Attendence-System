@@ -114,9 +114,13 @@ app.get('/signup', (req, res) =>
   res.sendFile(path.join(__dirname, 'views', 'signup.html')),
 );
 
+// server.js
+
 app.post('/signup', async (req, res) => {
   try {
     const { name, email, password, role, enrollment, subjects } = req.body;
+
+    // --- Validation Checks (Same as before) ---
     if (!name || !email || !password || !role) {
       return res
         .status(400)
@@ -148,15 +152,23 @@ app.post('/signup', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    user = new User({
+    // --- YEH HISSA BADLA GAYA HAI ---
+    const userData = {
       name,
       email,
       password: hashedPassword,
       role,
-      enrollment,
-      subjects,
-    });
+    };
+
+    if (role === 'student') {
+      userData.enrollment = enrollment;
+    } else if (role === 'teacher') {
+      userData.subjects = subjects;
+    }
+
+    user = new User(userData);
     await user.save();
+    // --- BADLAV KHATAM ---
 
     res
       .status(201)
@@ -377,7 +389,7 @@ io.on('connection', (socket) => {
     blockedList.push(enrollment);
     io.emit('waitingList', waitingRoom);
     if (studentToRemove) {
-      io.to(studentToRemove.socketId).emit('youAreRemoved'); 
+      io.to(studentToRemove.socketId).emit('youAreRemoved');
     }
     console.log(`Teacher ${socket.user.name} removed student ${enrollment}`);
   });

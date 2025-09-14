@@ -26,120 +26,141 @@
         <i class="fas fa-user-plus"></i>
       </div>
 
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h1 class="card-title text-center mb-4">Create Account</h1>
-          <form id="signupForm">
-            <div class="mb-3">
-              <label for="role" class="form-label"
-                ><i class="fas fa-user-tie me-2"></i>Select Role</label
-              >
-              <select
-                id="role"
-                name="role"
-                class="form-select form-select-lg"
-                required
-              >
-                <option value="" selected disabled>-- Select --</option>
-                <option value="student">Student</option>
-                <option value="teacher">Teacher</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label for="name" class="form-label"
-                ><i class="fas fa-user me-2"></i>Full Name</label
-              >
-              <input
-                type="text"
-                id="name"
-                name="name"
-                class="form-control form-control-lg"
-                required
-              />
-            </div>
-            <div class="mb-3">
-              <label for="email" class="form-label"
-                ><i class="fas fa-envelope me-2"></i>Email Address</label
-              >
-              <input
-                type="email"
-                id="email"
-                name="email"
-                class="form-control form-control-lg"
-                required
-              />
-            </div>
-            <div class="mb-3">
-              <label for="password" class="form-label"
-                ><i class="fas fa-lock me-2"></i>Password</label
-              >
-              <input
-                type="password"
-                id="password"
-                name="password"
-                class="form-control form-control-lg"
-                required
-              />
-            </div>
-            <div id="enrollmentDiv" class="mb-3 d-none">
-              <label for="enrollment" class="form-label"
-                ><i class="fas fa-id-card me-2"></i>Enrollment Number</label
-              >
-              <input
-                type="text"
-                id="enrollment"
-                name="enrollment"
-                class="form-control form-control-lg"
-              />
-            </div>
-            <div class="d-grid mt-4">
-              <button type="submit" class="btn btn-primary btn-lg">
-                Create Account
-              </button>
-            </div>
-          </form>
-          <div id="message" class="mt-3"></div>
-          <p class="mt-3 text-center">
-            Already have an account? <a href="/login">Login here</a>.
-          </p>
-        </div>
+      <div class="text-center mb-4">
+        <h1 class="mb-2">Create Account</h1>
+        <p class="text-muted">Fill in the details to get started</p>
       </div>
+
+      <form id="signupForm">
+        <div class="form-floating mb-3">
+          <select id="role" name="role" class="form-select" required>
+            <option value="" selected disabled>-- Select a role --</option>
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+          </select>
+          <label for="role"
+            ><i class="fas fa-user-tie me-2"></i>Select Role</label
+          >
+        </div>
+
+        <div class="form-floating">
+          <input
+            type="text"
+            id="name"
+            name="name"
+            class="form-control"
+            placeholder="Full Name"
+            required
+          />
+          <label for="name"><i class="fas fa-user me-2"></i>Full Name</label>
+          <span class="input-icon"><i class="fas fa-user"></i></span>
+        </div>
+
+        <div class="form-floating">
+          <input
+            type="email"
+            id="email"
+            name="email"
+            class="form-control"
+            placeholder="name@example.com"
+            required
+          />
+          <label for="email"
+            ><i class="fas fa-envelope me-2"></i>Email Address</label
+          >
+          <span class="input-icon"><i class="fas fa-envelope"></i></span>
+        </div>
+
+        <div class="form-floating">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="form-control"
+            placeholder="Password"
+            required
+          />
+          <label for="password"><i class="fas fa-lock me-2"></i>Password</label>
+          <span class="input-icon">
+            <i class="fas fa-lock" id="lockIcon"></i>
+            <i class="fas fa-eye-slash" id="togglePasswordIcon"></i>
+          </span>
+        </div>
+
+        <div id="subjectsDiv" class="form-floating d-none">
+          <input
+            type="text"
+            id="subjects"
+            name="subjects"
+            class="form-control"
+            placeholder="e.g., Physics, Maths"
+          />
+          <label for="subjects"
+            ><i class="fas fa-book me-2"></i>Subjects (comma separated)</label
+          >
+          <span class="input-icon"><i class="fas fa-book"></i></span>
+        </div>
+
+        <div id="enrollmentDiv" class="form-floating d-none">
+          <input
+            type="text"
+            id="enrollment"
+            name="enrollment"
+            class="form-control"
+            placeholder="Enrollment Number"
+          />
+          <label for="enrollment"
+            ><i class="fas fa-id-card me-2"></i>Enrollment Number</label
+          >
+          <span class="input-icon"><i class="fas fa-id-card"></i></span>
+        </div>
+
+        <div class="d-grid mt-4">
+          <button type="submit" class="btn btn-primary btn-lg">
+            Create Account
+          </button>
+        </div>
+      </form>
+      <div id="message" class="mt-3"></div>
+      <p class="mt-3 text-center">
+        Already have an account? <a href="/login">Login here</a>.
+      </p>
     </div>
 
     <script>
-      // Create background particles
+      // --- BACKGROUND PARTICLES ---
       function createParticles() {
         const container = document.getElementById('particles');
         const particleCount = 20;
-
         for (let i = 0; i < particleCount; i++) {
           const particle = document.createElement('div');
           particle.classList.add('particle');
-
-          // Random size and position
           const size = Math.random() * 20 + 5;
           const posX = Math.random() * 100;
           const posY = Math.random() * 100;
           const delay = Math.random() * 15;
-
           particle.style.width = `${size}px`;
           particle.style.height = `${size}px`;
           particle.style.left = `${posX}%`;
           particle.style.top = `${posY}%`;
           particle.style.animationDelay = `${delay}s`;
           particle.style.opacity = Math.random() * 0.5 + 0.1;
-
           container.appendChild(particle);
         }
       }
 
+      // --- ELEMENT SELECTORS ---
       const roleSelect = document.getElementById('role');
       const enrollmentDiv = document.getElementById('enrollmentDiv');
       const enrollmentInput = enrollmentDiv.querySelector('input');
+      const subjectsDiv = document.getElementById('subjectsDiv');
+      const subjectsInput = subjectsDiv.querySelector('input');
       const form = document.getElementById('signupForm');
       const messageDiv = document.getElementById('message');
 
+      // --- ROLE CHANGE LOGIC ---
       roleSelect.addEventListener('change', () => {
+        // Logic for Student role
         if (roleSelect.value === 'student') {
           enrollmentDiv.classList.remove('d-none');
           enrollmentInput.required = true;
@@ -147,35 +168,66 @@
           enrollmentDiv.classList.add('d-none');
           enrollmentInput.required = false;
         }
+
+        // Logic for Teacher role
+        if (roleSelect.value === 'teacher') {
+          subjectsDiv.classList.remove('d-none');
+          subjectsInput.required = true;
+        } else {
+          subjectsDiv.classList.add('d-none');
+          subjectsInput.required = false;
+        }
       });
 
+      // --- ADVANCED PASSWORD ICON LOGIC ---
+      const passwordInput = document.getElementById('password');
+      const lockIcon = document.getElementById('lockIcon');
+      const togglePasswordIcon = document.getElementById('togglePasswordIcon');
+      lockIcon.classList.add('visible');
+      passwordInput.addEventListener('focus', () => {
+        lockIcon.classList.remove('visible');
+        togglePasswordIcon.classList.add('visible');
+      });
+      passwordInput.addEventListener('blur', () => {
+        if (passwordInput.value === '') {
+          lockIcon.classList.add('visible');
+          togglePasswordIcon.classList.remove('visible');
+        }
+        passwordInput.setAttribute('type', 'password');
+        togglePasswordIcon.classList.remove('fa-eye');
+        togglePasswordIcon.classList.add('fa-eye-slash');
+      });
+      togglePasswordIcon.addEventListener('click', () => {
+        const type =
+          passwordInput.getAttribute('type') === 'password'
+            ? 'text'
+            : 'password';
+        passwordInput.setAttribute('type', type);
+        togglePasswordIcon.classList.toggle('fa-eye');
+        togglePasswordIcon.classList.toggle('fa-eye-slash');
+      });
+
+      // --- FORM SUBMISSION LOGIC ---
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-
-        // Button loading state
         const submitBtn = form.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML =
           '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
         submitBtn.disabled = true;
-
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
-
         try {
           const response = await fetch('/signup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
           });
-
           const result = await response.json();
-
           const messageClass = result.success
             ? 'alert-success'
             : 'alert-danger';
           messageDiv.innerHTML = `<div class="alert ${messageClass}">${result.message}</div>`;
-
           if (result.success) {
             form.reset();
             setTimeout(() => {
@@ -195,17 +247,14 @@
         }
       });
 
-      // Initialize particles on load
+      // --- PAGE INITIALIZATION ---
       document.addEventListener('DOMContentLoaded', () => {
         createParticles();
-
-        // Add input focus effects
         const inputs = document.querySelectorAll('input, select');
         inputs.forEach((input) => {
           input.addEventListener('focus', () => {
             input.parentElement.classList.add('form-group-3d');
           });
-
           input.addEventListener('blur', () => {
             input.parentElement.classList.remove('form-group-3d');
           });
