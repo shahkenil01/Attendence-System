@@ -196,9 +196,22 @@
             lockBtn.disabled = false;
           },
           (error) => {
-            alert(
-              'Error: Could not get your location. Please ensure location is enabled.',
-            );
+            let message =
+              'Could not get your location. Please check OS/Browser settings.';
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                message =
+                  'You denied the request for Geolocation. Please allow location access.';
+                break;
+              case error.POSITION_UNAVAILABLE:
+                message =
+                  'Location information is unavailable. This may be due to a poor signal.';
+                break;
+              case error.TIMEOUT:
+                message = 'The request to get your location timed out.';
+                break;
+            }
+            alert(`Error: ${message}`);
             startSessionBtn.disabled = false;
             startSessionBtn.textContent = 'Start New Session';
           },

@@ -23,9 +23,9 @@
         <div class="card-body p-5">
           <h1 class="card-title text-center mb-4">Final Attendance</h1>
           <p class="text-center text-muted">
-            Please review your details and click submit.
+            Please review your details below.
           </p>
-          <form id="attForm">
+          <form id="attForm" onsubmit="return false;">
             <div class="mb-3">
               <label class="form-label">Name:</label>
               <input
@@ -33,6 +33,7 @@
                 id="name"
                 class="form-control-plaintext form-control-lg"
                 readonly
+                placeholder="Loading..."
               />
             </div>
             <div class="mb-3">
@@ -42,6 +43,7 @@
                 id="enroll"
                 class="form-control-plaintext form-control-lg"
                 readonly
+                placeholder="Loading..."
               />
             </div>
             <hr />
@@ -53,6 +55,7 @@
                 type="button"
                 id="verifyBtn"
                 class="btn btn-warning btn-lg w-100"
+                disabled
               >
                 Verify My Location
               </button>
@@ -98,7 +101,7 @@
       );
       const submissionSection = document.getElementById('submissionSection');
 
-      // Page load par sirf user ki details fetch karein
+      // Step 1: Fetch user details first
       window.addEventListener('load', async () => {
         try {
           const response = await fetch('/api/user/me');
@@ -106,16 +109,16 @@
           if (result.success && result.user) {
             nameInput.value = result.user.name;
             enrollInput.value = result.user.enrollment;
+            verifyBtn.disabled = false; // Enable verify button only after details are loaded
           } else {
             throw new Error('Could not fetch user details.');
           }
         } catch (error) {
           msg.innerHTML = `<div class="alert alert-warning">Could not load student details.</div>`;
-          verifyBtn.disabled = true;
         }
       });
 
-      // "Verify" button par click karne par location check karein
+      // Step 2: Verify location on button click
       verifyBtn.addEventListener('click', () => {
         msg.innerHTML = `<div class="alert alert-info">Verifying you are in the classroom...</div>`;
         verifyBtn.disabled = true;
@@ -150,10 +153,12 @@
           },
         );
       });
+
+      // Step 3: Handle server verification response
       socket.on('finalLocationVerified', () => {
         msg.innerHTML = `<div class="alert alert-success">Location Verified! You can now submit.</div>`;
-        verificationSection.classList.add('d-none'); // Verify button ko chupayein
-        submissionSection.classList.remove('d-none'); // Submit button ko dikhayein
+        verificationSection.classList.add('d-none');
+        submissionSection.classList.remove('d-none');
       });
 
       socket.on('finalLocationInvalid', (message) => {
@@ -162,7 +167,7 @@
         verifyBtn.innerHTML = 'Retry Verification';
       });
 
-      // Form submit logic
+      // Step 4: Handle final submission
       submitBtn.addEventListener('click', (e) => {
         e.preventDefault();
         socket.emit('submitAttendance');

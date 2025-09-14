@@ -44,6 +44,7 @@ io.use((socket, next) => {
 let waitingRoom = [];
 let currentSession = { code: null, subject: 'No Subject' };
 let finalAttendanceList = [];
+let blockedList = [];
 
 const CAMPUS_LOCATION = {
   latitude: 23.0830809,
@@ -97,12 +98,10 @@ app.post('/signup', async (req, res) => {
         .json({ success: false, message: 'Please fill all required fields.' });
     }
     if (role === 'student' && !enrollment) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: 'Enrollment number is required for students.',
-        });
+      return res.status(400).json({
+        success: false,
+        message: 'Enrollment number is required for students.',
+      });
     }
 
     let user = await User.findOne({ email });
@@ -114,12 +113,10 @@ app.post('/signup', async (req, res) => {
     if (role === 'student' && enrollment) {
       user = await User.findOne({ enrollment });
       if (user) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message: 'Enrollment number already exists.',
-          });
+        return res.status(400).json({
+          success: false,
+          message: 'Enrollment number already exists.',
+        });
       }
     }
 
@@ -252,8 +249,10 @@ io.on('connection', (socket) => {
     if (socket.user.role !== 'teacher' || !data || !data.subject) return;
     currentSession.code = Math.floor(100000000 + Math.random() * 900000000);
     currentSession.subject = data.subject;
+    currentSession.location = data.location;
     waitingRoom = [];
     finalAttendanceList = [];
+    blockedList = [];
     io.emit('sessionCode', currentSession.code);
     io.emit('attendanceUpdate', finalAttendanceList);
     console.log(
@@ -269,6 +268,12 @@ io.on('connection', (socket) => {
     ) {
       return socket.emit('errorMsg', 'Invalid session code');
     }
+    if (blockedList.includes(socket.user.enrollment)) {
+      return socket.emit(
+        'errorMsg',
+        'You have been removed and cannot rejoin.',
+      );
+    }
     const studentExists = waitingRoom.find(
       (s) => s.enrollment === socket.user.enrollment,
     );
@@ -281,6 +286,48 @@ io.on('connection', (socket) => {
     }
     socket.emit('joinSuccess', { subject: currentSession.subject });
     io.emit('waitingList', waitingRoom);
+  });
+
+  socket.on('removeStudent', (enrollment) => {
+    if (socket.user.role !== 'teacher') return;
+    const studentToRemove = waitingRoom.find(
+      (s) => s.enrollment === enrollment,
+    );
+    waitingRoom = waitingRoom.filter((s) => s.enrollment !== enrollment);
+    blockedList.push(enrollment);
+    io.emit('waitingList', waitingRoom);
+    if (studentToRemove) {
+      io.to(studentToRemove.id).emit('youAreRemoved');
+    }
+    console.log(`Teacher ${socket.user.name} removed student ${enrollment}`);
+  });
+
+  socket.on('verifyFinalLocation', (studentCoords) => {
+    if (
+      socket.user.role !== 'student' ||
+      !studentCoords ||
+      !currentSession.location
+    ) {
+      return;
+    }
+
+    const CLASSROOM_RADIUS = 20; // Classroom ka radius 20 meter
+
+    const distance = getDistance(
+      currentSession.location.lat,
+      currentSession.location.lon,
+      studentCoords.latitude,
+      studentCoords.longitude,
+    );
+
+    if (distance <= CLASSROOM_RADIUS) {
+      socket.emit('finalLocationVerified'); // Verification successful
+    } else {
+      socket.emit(
+        'finalLocationInvalid',
+        `You must be in the classroom (~${Math.round(distance)}m away).`,
+      );
+    }
   });
 
   socket.on('lockSession', () => {
@@ -298,7 +345,9 @@ io.on('connection', (socket) => {
       const submission = {
         name: socket.user.name,
         enrollment: socket.user.enrollment,
-        timestamp: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
+        timestamp: new Date().toLocaleTimeString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+        }),
       };
       finalAttendanceList.push(submission);
       io.emit('attendanceUpdate', finalAttendanceList);
