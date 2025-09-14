@@ -75,21 +75,43 @@
       </div>
     </div>
 
+    <div
+      class="modal fade"
+      id="reconnectModal"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+      tabindex="-1"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-body text-center">
+            <div class="spinner-border text-warning mb-3" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <h4>Connection Lost</h4>
+            <p class="text-muted">
+              Attempting to reconnect you to the server...
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+      // --- INITIAL SETUP & AUTHENTICATION ---
       const token = localStorage.getItem('authToken');
       if (!token) {
         window.location.href = '/login';
       }
 
-      const socket = io({ auth: { token: token } });
-      socket.on('connect_error', (err) => {
-        alert(err.message);
-        localStorage.clear();
-        window.location.href = '/login';
+      const socket = io({
+        auth: { token: token },
+        reconnection: true,
       });
 
+      // --- PAGE ELEMENTS ---
       const form = document.getElementById('attForm');
       const nameInput = document.getElementById('name');
       const enrollInput = document.getElementById('enroll');
@@ -100,8 +122,24 @@
         'verificationSection',
       );
       const submissionSection = document.getElementById('submissionSection');
+      const reconnectModalElement = document.getElementById('reconnectModal');
+      const reconnectModal = new bootstrap.Modal(reconnectModalElement);
 
-      // Step 1: Fetch user details first
+      // --- CONNECTION HANDLING ---
+      socket.on('connect_error', (err) => {
+        if (err.message.includes('Invalid token')) {
+          alert('Authentication failed. Please log in again.');
+          localStorage.clear();
+          window.location.href = '/login';
+        } else {
+          reconnectModal.show();
+        }
+      });
+      socket.on('disconnect', () => reconnectModal.show());
+      socket.on('connect', () => reconnectModal.hide());
+
+      // --- PAGE LOGIC ---
+      // 1. Fetch user details on page load
       window.addEventListener('load', async () => {
         try {
           const response = await fetch('/api/user/me');
@@ -109,7 +147,7 @@
           if (result.success && result.user) {
             nameInput.value = result.user.name;
             enrollInput.value = result.user.enrollment;
-            verifyBtn.disabled = false; // Enable verify button only after details are loaded
+            verifyBtn.disabled = false; // Enable verify button after details load
           } else {
             throw new Error('Could not fetch user details.');
           }
@@ -118,7 +156,7 @@
         }
       });
 
-      // Step 2: Verify location on button click
+      // 2. Verify location on button click
       verifyBtn.addEventListener('click', () => {
         msg.innerHTML = `<div class="alert alert-info">Verifying you are in the classroom...</div>`;
         verifyBtn.disabled = true;
@@ -154,7 +192,7 @@
         );
       });
 
-      // Step 3: Handle server verification response
+      // 3. Handle server verification response
       socket.on('finalLocationVerified', () => {
         msg.innerHTML = `<div class="alert alert-success">Location Verified! You can now submit.</div>`;
         verificationSection.classList.add('d-none');
@@ -167,7 +205,7 @@
         verifyBtn.innerHTML = 'Retry Verification';
       });
 
-      // Step 4: Handle final submission
+      // 4. Handle final submission
       submitBtn.addEventListener('click', (e) => {
         e.preventDefault();
         socket.emit('submitAttendance');

@@ -12,6 +12,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
+    <link rel="stylesheet" href="/css/teacher-style.css">
   </head>
   <body>
     <nav class="navbar navbar-dark bg-dark">
@@ -78,7 +79,7 @@
         </div>
         <div class="col-md-6 mb-4">
           <div class="card shadow-sm">
-            <div class="card-header h5">Final Attendance</div>
+            <div class="card-header he h5">Final Attendance</div>
             <ul id="attendanceList" class="list-group list-group-flush"></ul>
           </div>
         </div>
@@ -107,20 +108,40 @@
       </div>
     </div>
 
+    <div
+      class="modal fade"
+      id="reconnectModal"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+      tabindex="-1"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-body text-center">
+            <div class="spinner-border text-warning mb-3" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <h4>Connection Lost</h4>
+            <p class="text-muted">
+              Attempting to reconnect you to the server...
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+      // --- INITIAL SETUP & AUTHENTICATION ---
       const token = localStorage.getItem('authToken');
       if (!token) {
         window.location.href = '/login';
       }
 
-      const socket = io({ auth: { token: token } });
-
-      socket.on('connect_error', (err) => {
-        alert(err.message);
-        localStorage.clear();
-        window.location.href = '/login';
+      const socket = io({
+        auth: { token: token },
+        reconnection: true, // Automatically try to reconnect
       });
 
       // --- PAGE ELEMENTS ---
@@ -131,11 +152,27 @@
       const attList = document.getElementById('attendanceList');
       const lockBtn = document.getElementById('lockBtn');
       const reportBtn = document.getElementById('reportBtn');
-
-      // --- PROFILE MODAL ELEMENTS AND LOGIC ---
       const profileName = document.getElementById('profileName');
       const profileSubjects = document.getElementById('profileSubjects');
+      const reconnectModalElement = document.getElementById('reconnectModal');
+      const reconnectModal = new bootstrap.Modal(reconnectModalElement);
 
+      // --- CONNECTION HANDLING ---
+      socket.on('connect_error', (err) => {
+        // Only log out if the token is invalid, otherwise show reconnect modal
+        if (err.message.includes('Invalid token')) {
+          alert('Authentication failed. Please log in again.');
+          localStorage.clear();
+          window.location.href = '/login';
+        } else {
+          reconnectModal.show();
+        }
+      });
+
+      socket.on('disconnect', () => reconnectModal.show());
+      socket.on('connect', () => reconnectModal.hide());
+
+      // --- PROFILE LOGIC ---
       async function fetchProfileData() {
         try {
           const response = await fetch('/api/user/me');
@@ -163,16 +200,14 @@
         }
       }
       fetchProfileData();
-      // --- END OF PROFILE LOGIC ---
 
-      // --- SESSION LOGIC ---
+      // --- SESSION MANAGEMENT LOGIC ---
       startSessionBtn.addEventListener('click', () => {
         const subject = document.getElementById('subjectName').value;
         if (!subject) {
           alert('Please enter a subject name to start the session.');
           return;
         }
-
         if (!navigator.geolocation) {
           return alert('Geolocation is not supported by your browser.');
         }
@@ -186,12 +221,10 @@
               lat: position.coords.latitude,
               lon: position.coords.longitude,
             };
-
             socket.emit('startSession', {
               subject: subject,
               location: teacherLocation,
             });
-
             startSessionBtn.textContent = 'Session Started';
             lockBtn.disabled = false;
           },
@@ -205,7 +238,7 @@
                 break;
               case error.POSITION_UNAVAILABLE:
                 message =
-                  'Location information is unavailable. This may be due to a poor signal.';
+                  'Location information is unavailable. This can be due to a poor signal or network issue.';
                 break;
               case error.TIMEOUT:
                 message = 'The request to get your location timed out.';
@@ -218,6 +251,17 @@
         );
       });
 
+      lockBtn.addEventListener('click', () => {
+        socket.emit('lockSession');
+        lockBtn.disabled = true;
+        lockBtn.textContent = 'Session Locked';
+      });
+
+      reportBtn.addEventListener('click', () => {
+        socket.emit('getReport');
+      });
+
+      // --- SOCKET EVENT LISTENERS ---
       socket.on('sessionCode', (code) => {
         sessionCodeDisplay.textContent = code;
         waitingList.innerHTML = '';
@@ -238,7 +282,6 @@
           const removeBtn = document.createElement('button');
           removeBtn.className = 'btn btn-danger btn-sm';
           removeBtn.textContent = 'Remove';
-
           removeBtn.onclick = () => {
             if (confirm(`Are you sure you want to remove ${s.name}?`)) {
               socket.emit('removeStudent', s.enrollment);
@@ -248,16 +291,6 @@
           li.appendChild(removeBtn);
           waitingList.appendChild(li);
         });
-      });
-
-      lockBtn.addEventListener('click', () => {
-        socket.emit('lockSession');
-        lockBtn.disabled = true;
-        lockBtn.textContent = 'Session Locked';
-      });
-
-      reportBtn.addEventListener('click', () => {
-        socket.emit('getReport');
       });
 
       socket.on('attendanceUpdate', (list) => {

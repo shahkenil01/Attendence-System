@@ -45,11 +45,12 @@ let waitingRoom = [];
 let currentSession = { code: null, subject: 'No Subject' };
 let finalAttendanceList = [];
 let blockedList = [];
+let isSessionLocked = false;
 
 const CAMPUS_LOCATION = {
   latitude: 23.0830809,
   longitude: 72.5341933,
-  radius: 50,
+  radius: 60,
 };
 
 function getDistance(lat1, lon1, lat2, lon2) {
@@ -173,6 +174,7 @@ app.post('/login', async (req, res) => {
     res.cookie('authToken', token, { httpOnly: true });
     res.json({
       success: true,
+      message: 'Login Successful! Redirecting...',
       token: token,
       user: { name: user.name, enrollment: user.enrollment, role: user.role },
     });
@@ -253,6 +255,7 @@ io.on('connection', (socket) => {
     waitingRoom = [];
     finalAttendanceList = [];
     blockedList = [];
+    isSessionLocked = false;
     io.emit('sessionCode', currentSession.code);
     io.emit('attendanceUpdate', finalAttendanceList);
     console.log(
@@ -261,6 +264,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('joinWaiting', (data) => {
+    if (isSessionLocked) {
+      return socket.emit('errorMsg', 'This session has been locked by the teacher.');
+    }
     if (
       socket.user.role !== 'student' ||
       !data ||
@@ -332,8 +338,9 @@ io.on('connection', (socket) => {
 
   socket.on('lockSession', () => {
     if (socket.user.role !== 'teacher') return;
+    isSessionLocked = true;
     io.emit('goToForm');
-    console.log('Teacher locked session');
+    console.log('Teacher locked session. No new students can join.');
   });
 
   socket.on('submitAttendance', () => {

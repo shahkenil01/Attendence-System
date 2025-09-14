@@ -29,9 +29,8 @@
           <div class="card-body p-5">
             <h1 class="card-title text-danger">Session Already Active</h1>
             <p class="lead">
-              An attendance session is already active in another tab of this
-              browser. Please complete or close the other session first, and
-              then refresh this page.
+              An attendance session is already active in another tab. Please
+              complete or close that session first.
             </p>
             <button id="closeSessionsBtn" class="btn btn-warning mt-3">
               Close Other Active Sessions
@@ -124,15 +123,36 @@
         </div>
       </div>
     </div>
+    <div
+      class="modal fade"
+      id="reconnectModal"
+      data-bs-backdrop="static"
+      data-bs-keyboard="false"
+      tabindex="-1"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-body text-center">
+            <div class="spinner-border text-warning mb-3" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <h4>Connection Lost</h4>
+            <p class="text-muted">
+              Attempting to reconnect you to the server...
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       const sessionLockDiv = document.getElementById('sessionLockDiv');
       const mainContentDiv = document.getElementById('mainContentDiv');
-
-      // NEW: Ek "walkie-talkie" channel banayein
       const channel = new BroadcastChannel('session_manager');
 
+      // First, check for an active session in another tab
       if (localStorage.getItem('isStudentSessionActive') === 'true') {
         mainContentDiv.classList.add('d-none');
         sessionLockDiv.classList.remove('d-none');
@@ -140,42 +160,39 @@
         const closeSessionsBtn = document.getElementById('closeSessionsBtn');
         closeSessionsBtn.addEventListener('click', () => {
           channel.postMessage('force_logout');
-          closeSessionsBtn.textContent = 'Closing... Please wait.';
+          closeSessionsBtn.textContent = 'Closing...';
           closeSessionsBtn.disabled = true;
-
-          // Thoda wait karke is tab ko aage badhayein
           setTimeout(() => {
             localStorage.removeItem('isStudentSessionActive');
             window.location.reload();
-          }, 500); // 0.5 second ka delay
+          }, 500);
         });
       } else {
+        // If no active session, set the flag and listen for messages
         localStorage.setItem('isStudentSessionActive', 'true');
-
-        // NEW: Message sunne ka logic
-        // Agar koi aur tab "force_logout" message bhejta hai, to yeh tab logout ho jayega
         channel.onmessage = (event) => {
           if (event.data === 'force_logout') {
-            // Flag hata dein taaki naya tab aage badh sake
             localStorage.removeItem('isStudentSessionActive');
-            // Is tab ko logout karke login page par bhej dein
             window.location.href = '/logout';
           }
         };
-
         window.addEventListener('beforeunload', () => {
           localStorage.removeItem('isStudentSessionActive');
-          channel.close(); // Channel ko aache se band karein
+          channel.close();
         });
 
-        // --- Aapka baaki ka poora code yahan se shuru hoga ---
+        // --- Start the main application logic ---
         const token = localStorage.getItem('authToken');
         if (!token) {
           window.location.href = '/login';
         }
 
-        const socket = io({ auth: { token: token } });
+        const socket = io({
+          auth: { token: token },
+          reconnection: true,
+        });
 
+        // Get all page elements
         const loaderDiv = document.getElementById('loader');
         const contentDiv = document.getElementById('content');
         const form = document.getElementById('joinForm');
@@ -184,7 +201,23 @@
         const joinButton = form.querySelector('button');
         const profileName = document.getElementById('profileName');
         const profileEnrollment = document.getElementById('profileEnrollment');
+        const reconnectModalElement = document.getElementById('reconnectModal');
+        const reconnectModal = new bootstrap.Modal(reconnectModalElement);
 
+        // --- Connection Handling ---
+        socket.on('connect_error', (err) => {
+          if (err.message.includes('Invalid token')) {
+            alert('Authentication failed. Please log in again.');
+            localStorage.clear();
+            window.location.href = '/login';
+          } else {
+            reconnectModal.show();
+          }
+        });
+        socket.on('disconnect', () => reconnectModal.show());
+        socket.on('connect', () => reconnectModal.hide());
+
+        // --- Profile Logic ---
         async function fetchProfileData() {
           try {
             const response = await fetch('/api/user/me');
@@ -199,6 +232,7 @@
         }
         fetchProfileData();
 
+        // --- Location & Session Logic ---
         function showContent() {
           loaderDiv.classList.add('d-none');
           contentDiv.classList.remove('d-none');
@@ -207,28 +241,26 @@
         window.addEventListener('load', () => {
           navigator.geolocation.getCurrentPosition(
             (position) => {
-              const coords = {
+              socket.emit('verifyLocation', {
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude,
-              };
-              socket.emit('verifyLocation', coords);
+              });
             },
             (error) => {
               showContent();
               let message =
-                'Could not get your location. Please enable location services in your OS settings and refresh.';
+                'Could not get location. Please enable location services and refresh.';
               switch (error.code) {
                 case error.PERMISSION_DENIED:
                   message =
-                    'You denied the request for Geolocation. Please allow location access in your browser settings.';
+                    'You denied location access. Please allow it in browser settings.';
                   break;
                 case error.POSITION_UNAVAILABLE:
                   message =
-                    'Location information is unavailable. This can happen with a bad GPS or Wi-Fi signal.';
+                    'Location information is unavailable, possibly due to a poor signal.';
                   break;
                 case error.TIMEOUT:
-                  message =
-                    'The request to get user location timed out. Please try again.';
+                  message = 'The request for your location timed out.';
                   break;
               }
               statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${message}</div>`;
@@ -236,29 +268,33 @@
           );
         });
 
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          socket.emit('joinWaiting', {
+            code: document.getElementById('code').value,
+          });
+          statusDiv.innerHTML = `<div class="alert alert-info">Attempting to join...</div>`;
+          joinButton.disabled = true;
+        });
+
+        // --- Socket Event Listeners ---
         socket.on('locationVerified', () => {
           showContent();
           joinFieldset.disabled = false;
           statusDiv.innerHTML = `<div class="alert alert-success">Location verified. You can now join a session.</div>`;
         });
-
         socket.on('locationInvalid', (message) => {
           showContent();
           statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${message}</div>`;
         });
-
-        form.addEventListener('submit', (e) => {
-          e.preventDefault();
-          const code = document.getElementById('code').value;
-          socket.emit('joinWaiting', { code });
-          statusDiv.innerHTML = `<div class="alert alert-info">Attempting to join...</div>`;
-          joinButton.disabled = true;
-        });
-
         socket.on('joinSuccess', (data) => {
-          statusDiv.innerHTML = `<div class="alert alert-success">Successfully joined waiting room for <strong>${data.subject}</strong>. Waiting for teacher...</div>`;
+          statusDiv.innerHTML = `<div class="alert alert-success">Successfully joined waiting room for <strong>${data.subject}</strong>.</div>`;
         });
-
+        socket.on('youAreRemoved', () => {
+          localStorage.removeItem('isStudentSessionActive');
+          alert('You have been removed from the session by the teacher.');
+          window.location.href = '/logout';
+        });
         socket.on('goToForm', () => {
           window.location.href = '/form';
         });
@@ -266,12 +302,6 @@
           statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${msg}</div>`;
           joinButton.disabled = false;
           joinButton.textContent = 'Join Waiting Room';
-        });
-
-        socket.on('connect_error', (err) => {
-          alert(err.message);
-          localStorage.clear();
-          window.location.href = '/login';
         });
       }
     </script>
