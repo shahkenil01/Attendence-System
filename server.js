@@ -63,8 +63,8 @@ let allowedToAccessForm = new Set();
 const activeUsers = new Map();
 
 const CAMPUS_LOCATION = {
-  latitude: 23.083,
-  longitude: 72.53426,
+  latitude: 23.089697469837215,
+  longitude: 72.53497748866903,
   radius: 10,
 };
 
